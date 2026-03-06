@@ -1,4 +1,5 @@
 /* eslint-disable no-restricted-globals */
+/* eslint-disable no-unused-vars */
 import React, { useState, useEffect } from "react";
 import { initializeApp } from "firebase/app";
 import { getFirestore, doc, setDoc, onSnapshot } from "firebase/firestore";
@@ -42,7 +43,6 @@ function nomeMes(mesStr) {
 }
 function dataHoje() { return new Date().toISOString().split("T")[0]; }
 
-const CATEGORIAS_SERVICO = ["Lavagem Completa","Polimento","Cristalização Cerâmica","Higienização Interna","Vitrificação","Espelhamento","Detalhamento","Outros"];
 const CATEGORIAS_DESPESA = ["Aluguel","Produtos","Equipamentos","Funcionários","Utilidades","Marketing","Outros"];
 const STATUS_OS = ["Aguardando","Em Andamento","Pronto","Entregue","Cancelado"];
 const STATUS_OS_COLOR = { "Aguardando":"#ffba00", "Em Andamento":"#3b82f6", "Pronto":"#00d97e", "Entregue":"#94a3b8", "Cancelado":"#ff4757" };
