@@ -322,6 +322,27 @@ export default function App() {
           { id:4, nome:"Higienização Interna", preco:"150,00" },
         ]
       });
+      // E-mail para o administrador
+      try {
+        await fetch("https://api.emailjs.com/api/v1.0/email/send", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            service_id: "service_veteranos",
+            template_id: "template_cadastro",
+            user_id: "qmhFlMvfDr9Xfy_Hz",
+            template_params: {
+              to_email: "leorsantana2010@gmail.com",
+              grupo_nome: nome,
+              grupo_codigo: id,
+              responsavel: responsavel,
+              telefone: maskTelefone(telefone),
+              email_solicitante: email,
+              data: new Date().toLocaleDateString("pt-BR")
+            }
+          })
+        });
+      } catch(emailErr) { console.log("E-mail de cadastro não enviado:", emailErr); }
       setOkCadastro("✅ Cadastro enviado! Aguarde a aprovação do administrador.");
       setErroCadastro("");
       setCadastroForm({ nome:"", responsavel:"", telefone:"", email:"", codigo:"" });
@@ -419,6 +440,28 @@ export default function App() {
   const aprovar = async (id, g) => {
     const { doc: docFn, setDoc: setDocFn } = await import("firebase/firestore");
     await setDocFn(docFn(db, "estetica", id), { status: "ativo" }, { merge: true });
+    // E-mail de aprovação para o estabelecimento
+    if (g && g.emailResponsavel) {
+      try {
+        await fetch("https://api.emailjs.com/api/v1.0/email/send", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            service_id: "service_veteranos",
+            template_id: "template_aprovacao",
+            user_id: "qmhFlMvfDr9Xfy_Hz",
+            template_params: {
+              to_email: g.emailResponsavel,
+              responsavel: g.responsavel || "Responsável",
+              grupo_nome: g.nomeEstab || id,
+              grupo_usuario: id,
+              senha_inicial: "admin123",
+              link_sistema: "https://ecostetica.vercel.app"
+            }
+          })
+        });
+      } catch(e) { console.log("E-mail de aprovação não enviado:", e); }
+    }
     carregarGrupos();
   };
   const bloquear = async (id) => {
