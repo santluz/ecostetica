@@ -625,7 +625,7 @@ export default function App() {
 
           {aba === "clientes" && <AbaClientes clientes={clientes} setClientes={setClientes} ordens={ordens} filtro={filtroClientes} setFiltro={setFiltroClientes} isAdmin={isAdmin} modalCliente={modalCliente} setModalCliente={setModalCliente} clienteForm={clienteForm} setClienteForm={setClienteForm} clienteEditId={clienteEditId} setClienteEditId={setClienteEditId} salvarCliente={salvarCliente} veiculoTemp={veiculoTemp} setVeiculoTemp={setVeiculoTemp} showVeiculoForm={showVeiculoForm} setShowVeiculoForm={setShowVeiculoForm} adicionarVeiculoCliente={adicionarVeiculoCliente} removerVeiculoCliente={removerVeiculoCliente} clienteVazio={clienteVazio} maskTelefone={maskTelefone} isFull={isFull} limiteClientes={limiteClientes} setShowUpgrade={setShowUpgrade} />}
 
-          {aba === "os" && <AbaOS ordens={ordens} setOrdens={setOrdens} clientes={clientes} tabelaServicos={tabelaServicos} filtro={filtroOS} setFiltro={setFiltroOS} isAdmin={isAdmin} modalOS={modalOS} setModalOS={setModalOS} osForm={osForm} setOsForm={setOsForm} osEditId={osEditId} setOsEditId={setOsEditId} salvarOS={salvarOS} servicoOS={servicoOS} setServicoOS={setServicoOS} adicionarServicoOS={adicionarServicoOS} selecionarServicoTabela={selecionarServicoTabela} osVazia={osVazia} maskDinheiro={maskDinheiro} clienteNome={clienteNome} modalOSDetalhe={modalOSDetalhe} setModalOSDetalhe={setModalOSDetalhe} mesFiltro={mesFiltro} setMesFiltro={setMesFiltro} />}
+          {aba === "os" && <AbaOS ordens={ordens} setOrdens={setOrdens} clientes={clientes} tabelaServicos={tabelaServicos} filtro={filtroOS} setFiltro={setFiltroOS} isAdmin={isAdmin} modalOS={modalOS} setModalOS={setModalOS} osForm={osForm} setOsForm={setOsForm} osEditId={osEditId} setOsEditId={setOsEditId} salvarOS={salvarOS} servicoOS={servicoOS} setServicoOS={setServicoOS} adicionarServicoOS={adicionarServicoOS} selecionarServicoTabela={selecionarServicoTabela} osVazia={osVazia} maskDinheiro={maskDinheiro} clienteNome={clienteNome} modalOSDetalhe={modalOSDetalhe} setModalOSDetalhe={setModalOSDetalhe} mesFiltro={mesFiltro} setMesFiltro={setMesFiltro} nomeEstab={nomeEstab} />}
 
           {aba === "financeiro" && <AbaFinanceiro ordens={ordens} despesas={despesas} setDespesas={setDespesas} receitaMes={receitaMes} despesasMes={despesasMes} saldoMes={saldoMes} mesFiltro={mesFiltro} setMesFiltro={setMesFiltro} isAdmin={isAdmin} modalDespesa={modalDespesa} setModalDespesa={setModalDespesa} despesaForm={despesaForm} setDespesaForm={setDespesaForm} salvarDespesa={salvarDespesa} despesaVazia={despesaVazia} clienteNome={clienteNome} fmtDinheiro={fmtDinheiro} parseDinheiro={parseDinheiro} maskDinheiro={maskDinheiro} />}
 
@@ -942,9 +942,100 @@ function AbaClientes({ clientes, setClientes, ordens, filtro, setFiltro, isAdmin
 }
 
 // ════════════════════════════════════════════════════════════════════════════
+// GERAR PDF DA OS
+// ════════════════════════════════════════════════════════════════════════════
+function gerarPDFOS(os, nomeCliente, nomeEstab) {
+  const total = parseDinheiro(os.valorTotal) - parseDinheiro(os.desconto || "0");
+  const subtotal = parseDinheiro(os.valorTotal);
+  const desconto = parseDinheiro(os.desconto || "0");
+
+  const html = `
+    <!DOCTYPE html>
+    <html lang="pt-BR">
+    <head>
+      <meta charset="UTF-8"/>
+      <title>OS #${os.id} - ${nomeEstab}</title>
+      <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family: Arial, sans-serif; background:#fff; color:#111; padding:32px; }
+        .header { display:flex; justify-content:space-between; align-items:flex-start; border-bottom:3px solid #00b865; padding-bottom:16px; margin-bottom:24px; }
+        .empresa { font-size:26px; font-weight:900; color:#00b865; letter-spacing:1px; }
+        .os-numero { font-size:14px; color:#555; margin-top:4px; }
+        .badge { background:#00b865; color:#fff; padding:6px 16px; border-radius:20px; font-weight:700; font-size:13px; }
+        .secao { margin-bottom:20px; }
+        .secao-titulo { font-size:11px; font-weight:700; color:#888; letter-spacing:1px; text-transform:uppercase; margin-bottom:8px; border-bottom:1px solid #eee; padding-bottom:4px; }
+        .info-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+        .info-item label { font-size:11px; color:#888; display:block; }
+        .info-item span { font-size:14px; font-weight:600; }
+        table { width:100%; border-collapse:collapse; margin-top:8px; }
+        th { background:#f5f5f5; padding:8px 12px; text-align:left; font-size:12px; color:#555; font-weight:700; text-transform:uppercase; }
+        td { padding:10px 12px; border-bottom:1px solid #f0f0f0; font-size:14px; }
+        .valor { text-align:right; font-weight:600; }
+        .totais { margin-top:16px; border-top:2px solid #eee; padding-top:12px; }
+        .total-linha { display:flex; justify-content:space-between; padding:4px 0; font-size:14px; color:#555; }
+        .total-final { display:flex; justify-content:space-between; padding:10px 0; font-size:20px; font-weight:900; color:#00b865; border-top:2px solid #00b865; margin-top:8px; }
+        .obs { background:#f9f9f9; border-left:3px solid #00b865; padding:12px 16px; font-size:13px; color:#555; border-radius:0 8px 8px 0; }
+        .rodape { margin-top:32px; text-align:center; font-size:11px; color:#aaa; border-top:1px solid #eee; padding-top:16px; }
+        .status-badge { display:inline-block; padding:4px 12px; border-radius:20px; font-size:12px; font-weight:700; }
+        @media print { body { padding:16px; } }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        <div>
+          <div class="empresa">🚗 ${nomeEstab}</div>
+          <div class="os-numero">Ordem de Serviço · #${os.id}</div>
+          <div class="os-numero">Emitida em: ${new Date().toLocaleDateString("pt-BR")} às ${new Date().toLocaleTimeString("pt-BR", {hour:"2-digit",minute:"2-digit"})}</div>
+        </div>
+        <div class="badge">${os.status}</div>
+      </div>
+
+      <div class="secao">
+        <div class="secao-titulo">Dados do Cliente e Veículo</div>
+        <div class="info-grid">
+          <div class="info-item"><label>CLIENTE</label><span>${nomeCliente}</span></div>
+          <div class="info-item"><label>VEÍCULO / PLACA</label><span>${os.veiculoPlaca || "—"}</span></div>
+          <div class="info-item"><label>DATA DA OS</label><span>${os.data || "—"}</span></div>
+          <div class="info-item"><label>PREVISÃO DE ENTREGA</label><span>${os.previsao || "—"}</span></div>
+          <div class="info-item"><label>FORMA DE PAGAMENTO</label><span>${os.formaPagamento || "—"}</span></div>
+        </div>
+      </div>
+
+      <div class="secao">
+        <div class="secao-titulo">Serviços Realizados</div>
+        <table>
+          <thead><tr><th>Serviço</th><th style="text-align:right">Valor</th></tr></thead>
+          <tbody>
+            ${(os.servicos || []).map(s => `<tr><td>${s.nome}</td><td class="valor">R$ ${s.valor}</td></tr>`).join("")}
+          </tbody>
+        </table>
+        <div class="totais">
+          <div class="total-linha"><span>Subtotal</span><span>${fmtDinheiro(subtotal)}</span></div>
+          ${desconto > 0 ? `<div class="total-linha" style="color:#e53e3e"><span>Desconto</span><span>- ${fmtDinheiro(desconto)}</span></div>` : ""}
+          <div class="total-final"><span>TOTAL</span><span>${fmtDinheiro(total)}</span></div>
+        </div>
+      </div>
+
+      ${os.observacao ? `<div class="secao"><div class="secao-titulo">Observações</div><div class="obs">${os.observacao}</div></div>` : ""}
+
+      <div class="rodape">
+        ${nomeEstab} · Obrigado pela preferência! · ${new Date().getFullYear()}
+      </div>
+    </body>
+    </html>
+  `;
+
+  const janela = window.open("", "_blank");
+  janela.document.write(html);
+  janela.document.close();
+  janela.focus();
+  setTimeout(() => janela.print(), 500);
+}
+
+// ════════════════════════════════════════════════════════════════════════════
 // ABA ORDENS DE SERVIÇO
 // ════════════════════════════════════════════════════════════════════════════
-function AbaOS({ ordens, setOrdens, clientes, tabelaServicos, filtro, setFiltro, isAdmin, modalOS, setModalOS, osForm, setOsForm, osEditId, setOsEditId, salvarOS, servicoOS, setServicoOS, adicionarServicoOS, selecionarServicoTabela, osVazia, maskDinheiro, clienteNome, modalOSDetalhe, setModalOSDetalhe, mesFiltro, setMesFiltro }) {
+function AbaOS({ ordens, setOrdens, clientes, tabelaServicos, filtro, setFiltro, isAdmin, modalOS, setModalOS, osForm, setOsForm, osEditId, setOsEditId, salvarOS, servicoOS, setServicoOS, adicionarServicoOS, selecionarServicoTabela, osVazia, maskDinheiro, clienteNome, modalOSDetalhe, setModalOSDetalhe, mesFiltro, setMesFiltro, nomeEstab }) {
   const [abaOSFiltro, setAbaOSFiltro] = useState("todas");
   const clienteSelecionado = clientes.find(c => c.id === osForm.clienteId);
 
@@ -1143,8 +1234,9 @@ function AbaOS({ ordens, setOrdens, clientes, tabelaServicos, filtro, setFiltro,
                 ))}
               </div>
             )}
-            <div style={{ display:"flex", gap:8 }}>
+            <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
               {isAdmin && <button style={{ ...S.btn("#3b82f6"), flex:1 }} onClick={() => { setOsForm({ clienteId:modalOSDetalhe.clienteId, veiculoPlaca:modalOSDetalhe.veiculoPlaca, servicos:modalOSDetalhe.servicos||[], observacao:modalOSDetalhe.observacao||"", data:modalOSDetalhe.data, previsao:modalOSDetalhe.previsao||"", status:modalOSDetalhe.status, valorTotal:modalOSDetalhe.valorTotal, desconto:modalOSDetalhe.desconto||"0,00", formaPagamento:modalOSDetalhe.formaPagamento||"PIX" }); setOsEditId(modalOSDetalhe.id); setModalOSDetalhe(null); setModalOS(true); }}>✏️ Editar</button>}
+              <button style={{ ...S.btn("#f59e0b"), flex:1 }} onClick={() => gerarPDFOS(modalOSDetalhe, clienteNome(modalOSDetalhe.clienteId), nomeEstab)}>🖨️ Imprimir OS</button>
               {isAdmin && <button style={{ ...S.btn("#ff4757") }} onClick={() => { if(confirm("Excluir OS?")) { setOrdens(ordens.filter(o=>o.id!==modalOSDetalhe.id)); setModalOSDetalhe(null); } }}>🗑</button>}
               <button style={S.btnGhost} onClick={() => setModalOSDetalhe(null)}>Fechar</button>
             </div>
